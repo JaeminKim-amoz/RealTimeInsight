@@ -3,7 +3,10 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 
 function run(label, command, args, options = {}) {
-  const result = spawnSync(command, args, {
+  const needsCmd = process.platform === 'win32' && /\.(cmd|bat)$/i.test(command);
+  const actualCommand = needsCmd ? 'cmd.exe' : command;
+  const actualArgs = needsCmd ? ['/d', '/c', [command, ...args].join(' ')] : args;
+  const result = spawnSync(actualCommand, actualArgs, {
     cwd: options.cwd,
     encoding: 'utf8',
     shell: false,
