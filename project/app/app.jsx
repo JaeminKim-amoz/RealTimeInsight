@@ -4,7 +4,7 @@ const INITIAL_PANELS = [
   // Panel definitions — grid position is col/row start/span in 12x12
   { id: 'p1', kind: 'strip',        title: 'Power Bus',         bindings: [{type:'channel', channelId:1001}, {type:'channel', channelId:1002}], gx: 1, gy: 1, gw: 5, gh: 3, linked: true },
   { id: 'p2', kind: 'strip',        title: 'Hydraulic A / B',   bindings: [{type:'channel', channelId:1205}, {type:'channel', channelId:1206}], gx: 6, gy: 1, gw: 4, gh: 3, linked: true },
-  { id: 'p3', kind: 'numeric',      title: 'Flight State',      bindings: [{type:'channel', channelId:1001}, {type:'channel', channelId:1002}, {type:'channel', channelId:2217}, {type:'channel', channelId:2218}, {type:'channel', channelId:1205}, {type:'channel', channelId:1207}], gx: 10, gy: 1, gw: 3, gh: 3 },
+  { id: 'p3', kind: 'numeric',      title: 'Flight / PCM State', bindings: [{type:'channel', channelId:1001}, {type:'channel', channelId:1002}, {type:'channel', channelId:2217}, {type:'channel', channelId:2218}, {type:'channel', channelId:1205}, {type:'channel', channelId:1207}, {type:'channel', channelId:8001}, {type:'channel', channelId:8004}, {type:'channel', channelId:8005}, {type:'channel', channelId:8008}], gx: 10, gy: 1, gw: 3, gh: 3 },
   { id: 'p4', kind: 'strip',        title: 'Pose · Roll/Pitch/Yaw', bindings: [{type:'channel', channelId:2210}, {type:'channel', channelId:2211}, {type:'channel', channelId:2212}], gx: 1, gy: 4, gw: 4, gh: 3, linked: true },
   { id: 'p5', kind: 'waterfall',    title: 'RF Spectrum L-band', bindings: [{type:'channel', channelId:5001}], gx: 5, gy: 4, gw: 4, gh: 3 },
   { id: 'p6', kind: 'attitude3d',   title: 'ADI · Attitude',     bindings: [{type:'channel', channelId:2210}, {type:'channel', channelId:2211}, {type:'channel', channelId:2212}], gx: 9, gy: 4, gw: 4, gh: 3 },
@@ -149,7 +149,8 @@ function App() {
 
   // Simulate CRC rate & FPS
   const fps = Math.round(58 + Math.sin(t) * 2);
-  const crcRate = 0.12;
+  const pcmCrcRate = BUS.getStatus?.().pcm?.crcFailRate;
+  const crcRate = pcmCrcRate == null ? 0.12 : pcmCrcRate * 100;
 
   const renderPanelBody = (p) => {
     switch (p.kind) {

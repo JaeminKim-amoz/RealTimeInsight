@@ -61,6 +61,16 @@ const CHANNEL_GROUPS = [
       { id: 7002, name: 'cam_belly',       display: 'Belly IR Camera',    unit: '',    type: 'V', group: 'Video', rate: 30, alarm: false },
     ]
   },
+  {
+    id: 'pcm', name: 'PCM Receiver', count: 6, children: [
+      { id: 8001, name: 'frame_counter',   display: 'Frame Counter',       unit: '',    type: 'C', group: 'PCM', rate: 200, alarm: false },
+      { id: 8004, name: 'subcom_phase',    display: 'Subcom Phase',        unit: '',    type: 'D', group: 'PCM', rate: 200, alarm: false },
+      { id: 8005, name: 'bit_slip',        display: 'Recovered Bit Slip',  unit: 'bit', type: 'A', group: 'PCM', rate: 1,   alarm: false },
+      { id: 8006, name: 'crc_valid',       display: 'CRC Valid',           unit: '',    type: 'D', group: 'PCM', rate: 200, alarm: false },
+      { id: 8007, name: 'sync_matches',    display: 'Sync Matches',        unit: '',    type: 'C', group: 'PCM', rate: 1,   alarm: false },
+      { id: 8008, name: 'crc_bad_frames',  display: 'CRC Bad Frames',      unit: '',    type: 'C', group: 'PCM', rate: 1,   alarm: true },
+    ]
+  },
 ];
 
 const ALL_CHANNELS = CHANNEL_GROUPS.flatMap(g => g.children);
@@ -113,6 +123,7 @@ const EVENTS = [
   { t: 182.340, sev: 'high', code: 'HYD.SPIKE',       ch: 1205, msg: 'Hydraulic pressure transient +28 bar in 0.3s' },
   { t: 182.341, sev: 'med',  code: 'PWR.DIP',         ch: 1001, msg: 'Bus voltage transient dip to 26.8V' },
   { t: 182.360, sev: 'med',  code: 'CRC.BURST',       ch: null, msg: 'CRC failure burst on frame-id 0x2A (14 frames)' },
+  { t: 182.352, sev: 'info', code: 'PCM.LOCK',        ch: 8001, msg: 'PCM sync locked on 0xFE6B2840 after bit-slip recovery (+5 bits)' },
   { t: 181.870, sev: 'low',  code: 'SYNC.LOSS',       ch: null, msg: 'Decoder sync loss regained after 45ms' },
   { t: 181.120, sev: 'info', code: 'RUN.MARK',        ch: null, msg: 'Operator bookmark — "climb segment start"' },
   { t: 180.003, sev: 'med',  code: 'RF.RSSI.LOW',     ch: 5002, msg: 'Link RSSI below -75 dBm for 2.1s' },

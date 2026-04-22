@@ -16,11 +16,17 @@ const STREAM_DEFS = [
     ttl: 8,
     syncPattern: 'FE6B2840',        // hex
     syncMaskBits: 32,
-    byteOrder: 'little',            // little | big
-    frameSize: 1024,                // bytes per major frame
+    byteOrder: 'big',               // little | big
+    frameSize: 1280,                // bytes per major frame: 640 x 16-bit words
+    wordBits: 16,
+    frameWords: 640,
+    bitAlignment: 'bit-slip-search',
+    syncPlacement: 'trailing',
+    counterWords: 'W0..W1',
+    subcommMaskBits: 4,
     periodMs: 5,                    // frame period → 200Hz
-    crc: 'CRC-32/Ch10',             // CRC-16/CCITT, CRC-32/Ch10, none
-    crcOffset: 1020,
+    crc: 'CRC-16/CCITT',            // CRC-16/CCITT, CRC-32/Ch10, none
+    crcOffset: 1274,
     aes: {
       enabled: true,
       mode: 'AES-256-CTR',          // AES-256-CTR | AES-256-GCM | AES-256-CBC | none
@@ -29,11 +35,10 @@ const STREAM_DEFS = [
       iv: 'per-frame · header IV',
     },
     regions: [
-      { id:'r1', name:'header',       kind:'header',   offset:0,    length:24,   color:'#6a9bb5' },
-      { id:'r2', name:'PCM words',    kind:'digital',  offset:24,   length:512,  color:'#e5a24a' },
-      { id:'r3', name:'MIL-STD-1553', kind:'digital',  offset:536,  length:240,  color:'#7aa874' },
-      { id:'r4', name:'video MPEG-TS',kind:'video',    offset:776,  length:240,  color:'#c97d6a' },
-      { id:'r5', name:'CRC-32',       kind:'crc',      offset:1020, length:4,    color:'#a78bc0' },
+      { id:'r1', name:'counter/subcom',kind:'header',  offset:0,    length:8,    color:'#6a9bb5' },
+      { id:'r2', name:'PCM words',     kind:'digital', offset:8,    length:1266, color:'#e5a24a' },
+      { id:'r3', name:'CRC-16',        kind:'crc',     offset:1274, length:2,    color:'#a78bc0' },
+      { id:'r4', name:'trailing sync', kind:'header',  offset:1276, length:4,    color:'#7aa874' },
     ],
     // Live-ish status
     stat: { locked: true, rxMbps: 42.8, pktPerSec: 200.1, crcErrPerMin: 0, syncLossPerMin: 0, dropPerMin: 0, lastSyncMs: 12 },
@@ -366,12 +371,17 @@ function StreamConfigModal({ open, onClose }) {
       id, name: 'New Stream', enabled: true,
       transport: 'udp-multicast', iface: 'eth1 (MGT-01)',
       ip: '239.192.9.99', port: 5999, bindPort: 5999, ttl: 8,
-      syncPattern: 'DEADBEEF', syncMaskBits: 32, byteOrder: 'little',
-      frameSize: 512, periodMs: 10, crc:'none', crcOffset: 0,
+      syncPattern: 'FE6B2840', syncMaskBits: 32, byteOrder: 'big',
+      frameSize: 1280, wordBits: 16, frameWords: 640,
+      bitAlignment: 'bit-slip-search', syncPlacement: 'trailing',
+      counterWords: 'W0..W1', subcommMaskBits: 4,
+      periodMs: 5, crc:'CRC-16/CCITT', crcOffset: 1274,
       aes: { enabled:false, mode:'none', keyLabel:'', keyFp:'', iv:'' },
       regions: [
-        { id:'r1', name:'header', kind:'header', offset:0, length:8, color:'#6a9bb5' },
-        { id:'r2', name:'payload', kind:'digital', offset:8, length:504, color:'#e5a24a' },
+        { id:'r1', name:'counter/subcom', kind:'header', offset:0, length:8, color:'#6a9bb5' },
+        { id:'r2', name:'PCM words', kind:'digital', offset:8, length:1266, color:'#e5a24a' },
+        { id:'r3', name:'CRC-16', kind:'crc', offset:1274, length:2, color:'#a78bc0' },
+        { id:'r4', name:'trailing sync', kind:'header', offset:1276, length:4, color:'#7aa874' },
       ],
       stat: { locked: false, rxMbps: 0, pktPerSec: 0, crcErrPerMin: 0, syncLossPerMin: 0, dropPerMin: 0, lastSyncMs: null },
     };
@@ -606,6 +616,41 @@ function StreamConfigModal({ open, onClose }) {
                       onChange={e => patchStream(s.id, { frameSize: +e.target.value })}/>
                   </div>
                   <div className="sc-field">
+                    <label>Frame words</label>
+                    <input type="number" className="cme-cell mono" value={s.frameWords || Math.floor(s.frameSize / 2)}
+                      onChange={e => patchStream(s.id, { frameWords: +e.target.value, frameSize: (+e.target.value) * (s.wordBits || 16) / 8 })}/>
+                  </div>
+                  <div className="sc-field">
+                    <label>Word width (bits)</label>
+                    <select value={s.wordBits || 16} onChange={e => patchStream(s.id, { wordBits: +e.target.value })} className="cme-cell mono">
+                      {[8, 10, 12, 16, 24, 32].map(n => <option key={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div className="sc-field">
+                    <label>Sync placement</label>
+                    <select value={s.syncPlacement || 'trailing'} onChange={e => patchStream(s.id, { syncPlacement: e.target.value })} className="cme-cell">
+                      <option value="trailing">trailing sync words</option>
+                      <option value="leading">leading sync words</option>
+                    </select>
+                  </div>
+                  <div className="sc-field">
+                    <label>Bit alignment</label>
+                    <select value={s.bitAlignment || 'byte-aligned'} onChange={e => patchStream(s.id, { bitAlignment: e.target.value })} className="cme-cell">
+                      <option value="bit-slip-search">bit-slip sync search</option>
+                      <option value="byte-aligned">byte-aligned only</option>
+                    </select>
+                  </div>
+                  <div className="sc-field">
+                    <label>Counter words</label>
+                    <input className="cme-cell mono" value={s.counterWords || 'W0..W1'}
+                      onChange={e => patchStream(s.id, { counterWords: e.target.value })}/>
+                  </div>
+                  <div className="sc-field">
+                    <label>Subcom mask bits</label>
+                    <input type="number" min="0" max="16" className="cme-cell mono" value={s.subcommMaskBits ?? 4}
+                      onChange={e => patchStream(s.id, { subcommMaskBits: +e.target.value })}/>
+                  </div>
+                  <div className="sc-field">
                     <label>Frame period (ms)</label>
                     <input type="number" step="0.1" className="cme-cell mono" value={s.periodMs}
                       onChange={e => patchStream(s.id, { periodMs: +e.target.value })}/>
@@ -638,7 +683,8 @@ function StreamConfigModal({ open, onClose }) {
                     <SyncPatternStrip pattern={s.syncPattern} maskBits={s.syncMaskBits}/>
                     <div style={{ marginTop:6, fontSize:10, color:'var(--fg-2)', fontFamily:'JetBrains Mono' }}>
                       0x{s.syncPattern.toUpperCase()} · {s.syncMaskBits}-bit · {s.byteOrder}-endian ·
-                      RX searches every {s.frameSize}B for this pattern; lock achieved after 3 consecutive matches.
+                      RX scans at bit granularity ({s.bitAlignment || 'byte-aligned'}) over {s.frameWords || Math.floor(s.frameSize/2)}x{s.wordBits || 16}b words;
+                      {` ${s.syncPlacement || 'trailing'} sync, ${s.counterWords || 'W0..W1'} counter, ${s.subcommMaskBits ?? 4} LSB subcom bits.`}
                     </div>
                   </div>
                 </div>

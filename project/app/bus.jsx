@@ -6,7 +6,7 @@ const BUS_BUFFER_SEC = 60;       // keep last 60s of samples
 const BUS_BUFFER_LEN = BUS_HZ * BUS_BUFFER_SEC; // 1800 samples per channel
 
 // Derived aircraft state (attitude, position) — shared across ADI, Map, Trajectory panels
-const DERIVED_CHANNELS = [2210, 2211, 2212, 2213, 2214, 2215, 3501, 3502, 3503, 1001, 1002, 1205, 1206, 5001, 5002, 5003, 6101];
+const DERIVED_CHANNELS = [2210, 2211, 2212, 2213, 2214, 2215, 3501, 3502, 3503, 1001, 1002, 1205, 1206, 5001, 5002, 5003, 6101, 8001, 8004, 8005, 8006, 8007, 8008];
 
 class TelemetryBus {
   constructor() {
@@ -22,6 +22,23 @@ class TelemetryBus {
     this.rate = 1.0;            // playback rate multiplier
     this.mode = 'live';         // 'live' or 'replay'
     this.replayCursor = 182.340;
+    this.pcm = window.RTIPcm ? window.RTIPcm.createDemoStream({
+      bitSlip: 5,
+      frameCount: 320,
+      profile: {
+        syncPattern: 0xFE6B2840,
+        syncPlacement: 'trailing',
+        frameWords: 640,
+        wordBits: 16,
+        crcWordIndex: 637,
+        syncWordStartIndex: 638,
+        subcommutationMaskBits: 4,
+      }
+    }) : null;
+    this.pcmStatus = this.pcm ? this.pcm.status() : {
+      locked: false, syncMatches: 0, goodFrames: 0, badFrames: 0, crcFailRate: 0, bitSlip: 0
+    };
+    this.currentPcm = null;
 
     // initialize buffers
     DERIVED_CHANNELS.forEach(id => {
@@ -64,10 +81,12 @@ class TelemetryBus {
   _emitSample() {
     const t = this.simT;
     this.ts[this.head] = t;
+    this.currentPcm = this.pcm ? this.pcm.nextSample() : null;
+    if (this.pcm) this.pcmStatus = this.pcm.status();
 
     // synthesize each channel as a function of simulated time
     for (const id of DERIVED_CHANNELS) {
-      this.buffers[id][this.head] = this._sampleFor(id, t);
+      this.buffers[id][this.head] = this._sampleFor(id, t, this.currentPcm);
     }
 
     // alarm trigger: hydraulic spike at t ≈ 182.340
@@ -89,7 +108,15 @@ class TelemetryBus {
     this.simT += 1 / BUS_HZ;
   }
 
-  _sampleFor(id, t) {
+  _sampleFor(id, t, pcmFrame) {
+    if (pcmFrame && pcmFrame.samples) {
+      const sample = pcmFrame.samples.find(s => s.channelId === id);
+      if (sample) return sample.value;
+    }
+    if (id === 8005) return this.pcmStatus.bitSlip || 0;
+    if (id === 8006) return this.pcmStatus.locked ? 1 : 0;
+    if (id === 8007) return this.pcmStatus.syncMatches || 0;
+    if (id === 8008) return this.pcmStatus.badFrames || 0;
     // Reuse the same synth recipe as gen() but as scalar
     const seed = id * 1.37;
     const r = (() => (Math.random() - 0.5));
@@ -164,6 +191,14 @@ class TelemetryBus {
     if (!buf || this.filled === 0) return null;
     const idx = (this.head - 1 + BUS_BUFFER_LEN) % BUS_BUFFER_LEN;
     return buf[idx];
+  }
+
+  getStatus() {
+    return {
+      pcm: this.pcmStatus,
+      currentFrame: this.currentPcm?.frameCounter ?? null,
+      subcommutation: this.currentPcm?.subcommutation ?? null,
+    };
   }
 
   get currentTime() { return this.simT; }

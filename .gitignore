@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.omx/state/
+.omx/logs/
+project/src-tauri/target/
+project/crates/*/target/
+project/vendor/simdissdk/
+project/runtime/exports/
+project/runtime/reports/
+project/runtime/matlab/
+*.log
+.DS_Store
