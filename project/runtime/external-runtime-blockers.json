@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-04-22",
+  "blockers": [
+    {
+      "id": "linux-matlab-for-mcp",
+      "status": "blocked",
+      "reason": "MATLAB MCP run_matlab_file requires a Linux MATLAB executable at <MATLAB_ROOT>/bin/matlab; the current WSL environment only sees Windows matlab.exe under /mnt/c.",
+      "setup": "project/runtime/setup-matlab-mcp.md",
+      "verify": "RUN_MATLAB_MCP_RUN_FILE_SMOKE=1 node project/runtime/matlab-mcp-tool-smoke.js"
+    },
+    {
+      "id": "gstreamer-runtime",
+      "status": "blocked",
+      "reason": "gst-launch-1.0, gst-inspect-1.0, tsdemux, and appsink are not installed on the current PATH.",
+      "setup": "project/runtime/setup-gstreamer.md",
+      "verify": "RUN_GSTREAMER_SMOKE=1 node project/runtime/gstreamer-smoke.js"
+    },
+    {
+      "id": "simdis-executable-profile",
+      "status": "blocked",
+      "reason": "The SDK source baseline exists, but a full SimDIS executable or sidecar profile is not configured.",
+      "setup": "project/runtime/setup-simdis.md",
+      "verify": "SIMDIS_PATH=<path> SIMDIS_PROFILE=<path> node project/runtime/runtime-readiness-report.js --strict"
+    },
+    {
+      "id": "certification-soak",
+      "status": "pending-target-hardware",
+      "reason": "Developer soak smokes pass, but certification-grade soak requires target Linux/Windows hardware and external runtime readiness.",
+      "setup": "project/runtime/certification-soak-plan.md",
+      "verify": "node project/runtime/runtime-readiness-report.js --strict && follow project/runtime/certification-soak-plan.md"
+    }
+  ]
+}

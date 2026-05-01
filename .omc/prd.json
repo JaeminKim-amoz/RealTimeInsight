@@ -1,0 +1,155 @@
+{
+  "project": "RTI Slice 3 — Visual Fidelity (prototype parity); Slice 2 stories preserved as completed",
+  "spec": ".omc/specs/deep-interview-rti-bridge-wire.md",
+  "discipline": "TDD pure: Red → Green → Refactor; ≥80% c8 line coverage on new TS code; visual-fidelity assertions via RTL on classNames + DOM presence",
+  "regression_baseline": "vitest 807 pass + 13 todo / 78 files; npm build exit 0; cargo build src-tauri exit 0",
+  "stories": [
+    {
+      "id": "US-2-001",
+      "title": "Drag-to-split: LayoutNode tree mutations replace FlatGridNode for runtime drag operations",
+      "priority": 1,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-002",
+      "title": "ChannelExplorer drag completion + drop-target highlight",
+      "priority": 2,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-003",
+      "title": "Replay mode: scrub bar + time-cursor playback + recorded data load",
+      "priority": 3,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-004",
+      "title": "4 FULL modals — LayoutPresetModal + LLMDrawer + ChannelMappingEditor + RecordingLibrary",
+      "priority": 4,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-005",
+      "title": "Real anomaly detection — expand from 1 fixture to live streamStore-driven detection",
+      "priority": 5,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-006",
+      "title": "RF panels — Spectrum + IQ Constellation + Eye Diagram + Analyzer Control",
+      "priority": 6,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-007",
+      "title": "5 STUB modals → FULL — StreamConfigModal, SequenceValidator, TestReportModal, TweaksPanel, SettingsDialog",
+      "priority": 7,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-2-008",
+      "title": "Slice 2 acceptance proof + integration test pass + full vitest regression green",
+      "priority": 8,
+      "passes": true,
+      "acceptanceCriteria": ["Slice 2 — completed and verified by architect"]
+    },
+    {
+      "id": "US-3-001",
+      "title": "GlobePanel — procedural earth texture + atmosphere glow + 2400 stars + 18 satellites + animated orbits",
+      "priority": 9,
+      "passes": true,
+      "acceptanceCriteria": [
+        "GlobePanel renders root div with className 'globe-wrap' (not 'panel-body globe') matching prototype CSS",
+        "Inner div with className 'globe-canvas' is the R3F mount point for the Three.js scene",
+        "Procedural earth texture function makeEarthTexture(w,h) creates ocean + ice caps + 18 continent blobs + city lights + cloud wisps",
+        "Bump texture function makeEarthBumpTexture(w,h) adds 8 mountain ranges as bright streaks",
+        "Star field layer renders ≥2000 background stars in a sphere shell",
+        "Atmosphere glow shader (BackSide, AdditiveBlending) wraps the earth at radius 1.06",
+        "Constants module exports SATELLITES (≥18 entries), THREAT_SITES (≥7 entries), FRIENDLY_EW (≥2 entries)",
+        "Satellites animate along orbital paths (phase advancement per RAF tick, 30x time scale)",
+        "Vitest test asserts SATELLITES.length === 18, THREAT_SITES.length === 7, FRIENDLY_EW.length === 2",
+        "Vitest test asserts GlobePanel renders divs with classNames 'globe-wrap', 'globe-canvas', and the four 'globe-hud-*' overlays"
+      ]
+    },
+    {
+      "id": "US-3-002",
+      "title": "GlobePanel — 4-corner HUD overlays + layer toggles + drag/wheel/auto-spin interactions",
+      "priority": 10,
+      "passes": true,
+      "acceptanceCriteria": [
+        "globe-hud-tl renders SPACE · ORBITAL VIEW + sats/threats/friendly/zoom counters (4 hud-rows)",
+        "globe-hud-tr renders 9-row layer toggle list with checkboxes",
+        "globe-hud-bl renders 위성 · LIVE table with first 8 satellites",
+        "globe-hud-br renders THREAT REGISTRY with all 7 threat sites",
+        "globe-credits text 'DRAG · 회전 · WHEEL · 줌' renders at bottom center",
+        "Layer toggle clicks update useState booleans and toggle THREE.Group .visible",
+        "Mouse drag rotates earth, wheel zooms camera, autoSpin advances rotation",
+        "Vitest test asserts all four globe-hud-* divs render with the right number of children"
+      ]
+    },
+    {
+      "id": "US-3-003",
+      "title": "GpsLosPanel — DOP grid (5 cells) + SNR bars (12 sats) + PDOP forecast SVG + 21-sat skyplot",
+      "priority": 11,
+      "passes": true,
+      "acceptanceCriteria": [
+        "GpsLosPanel renders root with className 'gps-panel' containing gps-skyplot (svg) + gps-side",
+        "Skyplot SVG renders ≥21 satellites across 4 constellations (GPS/GLO/GAL/BDS)",
+        "DOP grid renders 5 cells: PDOP/HDOP/VDOP/TDOP/GDOP",
+        "SNR bars render first 12 sats each with snr-id/snr-track/snr-fill/snr-val",
+        "PDOP forecast SVG renders polyline path + gradient fill + 2.0 limit dashed line",
+        "gps-counts strip shows USED/VIS/MASKED triplet",
+        "Vitest test asserts ≥21 satellite circles in skyplot SVG and 5 DOP cells render"
+      ]
+    },
+    {
+      "id": "US-3-004",
+      "title": "SpaceSheet container — full-bleed 60/40 split with proper height passing to GlobePanel",
+      "priority": 12,
+      "passes": true,
+      "acceptanceCriteria": [
+        "SpaceSheet root uses 'sheet space-sheet' className with display:flex, flexDirection:column, flex:1, minHeight:0",
+        "space-sheet-grid container has explicit height (flex:1, height:100%) so children fill vertically",
+        "Globe container .space-sheet-globe gets flex:'1 1 60%' AND height:100%",
+        "GpsLos container .space-sheet-gpslos gets flex:'0 0 40%', height:100%",
+        "Bottom telemetry strip uses 'space-sheet-strip' className",
+        "Vitest test renders <SpaceSheet /> and asserts space-sheet-grid + space-sheet-globe + space-sheet-gpslos divs all present",
+        "Vitest test asserts space-telemetry-strip exists with sat-count and threat-count showing 18 and 7"
+      ]
+    },
+    {
+      "id": "US-3-005",
+      "title": "GlobePanel canvas-fallback when WebGL unavailable",
+      "priority": 13,
+      "passes": true,
+      "acceptanceCriteria": [
+        "GlobePanel always renders an SVG fallback inside .globe-canvas (so jsdom is never blank)",
+        "SVG fallback uses className 'globe-canvas-fallback' with role='img' and aria-label",
+        "Earth circle uses radial gradient (deep blue → black) so it's visibly an earth in the SVG path",
+        "Vitest test in jsdom asserts globe-canvas-fallback renders an svg with a circle and orbit ellipses",
+        "When WebGL is available (production browser), useEffect creates Three.js scene as in prototype"
+      ]
+    },
+    {
+      "id": "US-3-006",
+      "title": "Slice 3 acceptance + visual-fidelity integration test + regression green",
+      "priority": 14,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/tests/integration/slice3-visual.spec.tsx — describe.each over US-3-001..US-3-005 verifying classNames + counts",
+        "Total vitest count delta: ≥+15 new tests pass (no fail)",
+        "npm run build still exit 0",
+        "cargo build src-tauri still exit 0",
+        "All 6 slice-3 stories US-3-001..US-3-006 marked passes:true"
+      ]
+    }
+  ],
+  "completionGate": "All slice-3 stories US-3-001..US-3-006 have passes:true; reviewer (architect) verifies fresh evidence vs acceptance criteria; vitest+cargo+build green; ai-slop-cleaner pass on changed files; regression re-run green."
+}

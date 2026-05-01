@@ -1,0 +1,41 @@
+[2026-04-27T09:24:54Z] Ralph started. PRD: 25 stories US-000..US-024. Iter 1: focus US-000 (housekeeping).
+[US-000 complete] Phase 0 housekeeping done.
+- Deleted stale builds: project/src/bridge/{client.js,client.d.ts,schemas.js,schemas.d.ts}
+- vitest baseline: passWithNoTests=true, exit 0 (config loads cleanly via esbuild jsx transform; @vitejs/plugin-react not used in vitest config since it's ESM-only)
+- tsconfig.json: includes project/src/**/*.{ts,tsx} + vitest/playwright configs; excludes node_modules, dist, public/app, .design-package, .omc, src-tauri, project/src-tauri, project/crates
+- Tarpaulin baseline: install ba2pblegk running in background; .omc/notes/rti-baseline-coverage.md documents --include-files policy for new files only (per Critic C9)
+- Pattern learned: Vitest 2 + @vitejs/plugin-react 5 ESM conflict — vitest has built-in JSX via esbuild (jsxImportSource react), no plugin needed for tests
+[US-001 start] Mock data port — TDD: write 5 spec.ts test files first, then port data.jsx → mock/*.ts to make Green.
+[US-001 complete] Mock data port — TDD Red→Green achieved.
+- types/domain.ts: ChannelSummary, ChannelGroup, AnomalyDescriptor, EventDescriptor, TrackPoint, DragChannelPayload (full type surface for slice 1 mock).
+- mock/channels.ts: 36 channels across 6 groups (Power/Hydraulic/Pose/RF/Nav/Video). 90.44% line coverage.
+- mock/anomalies.ts: ANOMALY anchor (anom-001 / channel 1205 / 4 candidates / 6 related). 95.74% coverage.
+- mock/events.ts: 9-event log with HYD.SPIKE anchor. 100% coverage.
+- mock/trackPoints.ts: deterministic 80-point sortie path. 100% coverage.
+- mock/synthesizer.ts: synthesize() + synthSeries() ports gen() with all channel branches. 100% coverage.
+- 32/32 tests passing; all new files ≥80% c8 line coverage (G1 gate satisfied).
+- Pattern learned: Vitest moduleResolution: 'Node' prefers .js over .ts when both exist; stale build outputs MUST be deleted before TDD runs (US-000 had to repeat this).
+- Pattern learned: Write tool refuses to overwrite existing files without prior Read. Re-Read + re-Write needed for stale .ts files.
+[Tarpaulin baseline] Recorded — receiver_session_counts_timeouts fails under tarpaulin instrumentation; G2 enforced via --include-files for slice-1 new Rust only. Documented in .omc/notes/rti-baseline-coverage.md.
+[US-002 start] Domain types — LayoutNode union with FlatGridNode + PanelInstance + PanelBinding + PanelKind.
+[US-002 complete] Domain types — LayoutNode union (Split|Tabs|Panel|FlatGridNode) + PanelInstance + PanelBinding + PanelKind (16) + 4 type-narrowing helpers. 7/7 tests.
+[US-003 complete] WorkspaceStore — LayoutNode tree, panels registry, workstation-default FlatGridNode preset reproducing public/app/app.jsx INITIAL_PANELS exactly, splitPanel mutation, savePreset/loadPreset roundtrip preserves user presets across reset. 9/9 tests.
+[US-004 complete] SessionStore — appMode (live|replay), playback (isPlaying, rate, currentTimeNs, selectionRange, loopEnabled), ingest snapshot. Mode toggle resets playback.isPlaying. 5/5 tests.
+[US-005 complete] SelectionStore — channels/anomaly/panel/graphNode/point selection, linkedCursorEnabled (default ON), globalCursorNs. Per Critic C4 fix, panels render-side observe globalCursorNs to draw cursor lines. 7/7 tests.
+[US-006 complete] StreamStore — subscribe/unsubscribe/pushFrame/tickRaf/updatePerformance. RAF coalescer: 1000 pushFrame calls = exactly 1 React notification per tickRaf (Critic E1, Architect Tension 2.6). RAF-budget assertion: <16.7ms avg under 200Hz synthetic. Pending queue separate from zustand state to avoid per-push notifications. 9/9 tests.
+[US-007 complete] IntegrationStore — matlab/llm/simdis/map/exportJobs/offlineAssets. Export job lifecycle (queued→running→completed). 5/5 tests.
+[Milestone] 8/25 stories done. 74/74 vitest tests pass. Phase 0 + 5 Zustand stores + types + mocks all green. TDD discipline maintained throughout.
+[ALL 25 STORIES COMPLETE]
+Final state:
+  - 65 test files / 588 passing + 13 todo (601 total)
+  - npm run build: exit 0, 13.08s, dist produced (1855kB JS, 155kB CSS, fonts bundled)
+  - 29/33 spec22 acceptance items PASS (4 TODO are F1-F4 perf gates deferred to CI: npm run check:perf + npm run e2e:perf)
+  - Playwright @visual (workstation.visual.spec.ts) + @perf (e2e_60fps.perf.spec.ts) registered
+  - Vite dev server boots in 422ms
+  - 5 Zustand stores + 13 panel TSX ports + 14 modals + 4 sheets + 5 shell components + 1 Rust crate extension + 1 [[bin]] pcm_gen + 60s perf gate (1s smoke green)
+  - TDD pure: every story Red→Green→Refactor; ≥80% c8 coverage on new TS files; ≥80% (in-scope new) Rust coverage policy
+  - Visual fidelity: 1:1 prototype CSS classNames preserved; layout via FlatGridNode preset reproducing INITIAL_PANELS exactly
+  - All 10 Critic conditions C1-C10 + 4 OQ resolutions encoded in plan v3
+
+[Slice 2 START] PRD set: 8 stories US-2-001..US-2-008 covering drag-split LayoutNode mutations, drag/drop completion, replay mode, 4 FULL modals + 5 FULL modals + RF panels + acceptance proof.
+[US-2-001 start] Drag-to-split — TDD: tests first that workspaceStore.splitPanel transitions FlatGridNode cell → SplitNode subtree on edge drop.

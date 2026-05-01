@@ -1,0 +1,333 @@
+{
+  "project": "RTI Bridge-Wire Slice 1",
+  "spec": ".omc/specs/deep-interview-rti-bridge-wire.md",
+  "plan": ".omc/plans/rti-bridge-wire-slice1-plan-v3.md",
+  "consensus": ".omc/plans/rti-bridge-wire-slice1-consensus-final.md",
+  "discipline": "TDD pure: Red → Green → Refactor; ≥80% c8 line coverage on new TS, ≥80% tarpaulin on new Rust",
+  "stories": [
+    {
+      "id": "US-000",
+      "title": "Phase 0 housekeeping: delete stale build outputs + record tarpaulin baseline",
+      "priority": 0,
+      "passes": true,
+      "acceptanceCriteria": [
+        "Files project/src/bridge/{client.js,client.d.ts,schemas.js,schemas.d.ts} deleted; project/src/bridge/client.ts and schemas.ts retained as canonical",
+        "vitest baseline run: `npx vitest run --reporter=verbose` shows zero suites and exits 0",
+        "Tarpaulin baseline file .omc/notes/rti-baseline-coverage.md created with crate-wide coverage % from `cargo tarpaulin --manifest-path project/crates/rti_core/Cargo.toml --skip-clean --out Stdout` (record number; <80% accepted as baseline, slice-1 gates use --include-files for new files)",
+        "tsconfig.json includes project/src/**/*.{ts,tsx} and excludes public/app, dist, .design-package"
+      ]
+    },
+    {
+      "id": "US-001",
+      "title": "Mock data port — channels, anomalies, events, trackPoints, synthesizer",
+      "priority": 1,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/mock/channels.ts exports 36 typed ChannelSummary (matching public/app/data.jsx CHANNEL_GROUPS) with fields {channelId, name, displayName, group, unit, channelType, sampleRateHz, qualityPolicy, tags}",
+        "project/src/mock/channels.test.ts: vitest unit verifies channel #1001 (bus_voltage) exists with channelType='analog', unit='V', sampleRateHz=200; channel #2210 (rpy_roll) exists with channelType='pose3d', unit='deg', sampleRateHz=100",
+        "project/src/mock/anomalies.ts exports ANOMALY fixture with fields {anomalyId, channelId, timestampNs, severity, score, label}",
+        "project/src/mock/anomalies.test.ts asserts ANOMALY id='anom-001' / channelId=1205 / severity='high'",
+        "project/src/mock/events.ts exports EVENTS array (typed)",
+        "project/src/mock/trackPoints.ts exports TRACK_POINTS array (lat/lon/alt/t typed)",
+        "project/src/mock/synthesizer.ts ports bus.jsx 30Hz synthesizer logic to TS with type-safe API; unit test asserts synthesize(channelId=1001, t=0) returns finite number, sin-based shape stable per t",
+        "All tests above written FIRST (Red) and pass after implementation (Green); c8 line coverage ≥80% on new mock files"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Domain types: LayoutNode union with FlatGridNode + PanelInstance + PanelBinding",
+      "priority": 2,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/types/domain.ts exports LayoutNode = SplitNode | TabNode | PanelNode | FlatGridNode union",
+        "FlatGridNode has fields {type:'flat-grid', id, columns, rows, cells: PanelCellPosition[]} where PanelCellPosition = {panelId, gx, gy, gw, gh}",
+        "PanelInstance type matches spec §6.1 (id, kind, title, layoutNodeId, bindings, options, uiState, createdAt, updatedAt)",
+        "PanelBinding union covers channel|channelGroup|anomaly|video|mapLayer|graphNode (spec §6.2)",
+        "PanelKind union covers all 13 panel kinds + 'globe' + 'gpslos'",
+        "project/src/types/domain.test.ts compiles + asserts type-narrowing helpers (isFlatGridNode, isSplitNode, etc.)"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "WorkspaceStore (Zustand) — LayoutNode tree, panels, presets, dirty",
+      "priority": 3,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/store/workspaceStore.ts exposes useWorkspaceStore with state {workspaceId, workspaceName, layoutTree, panels, presets, dirty}",
+        "Actions: setLayoutTree, addPanel, removePanel, updatePanel, splitPanel(panelId, direction), savePreset, loadPreset, markDirty",
+        "Unit test workspaceStore.test.ts verifies: initial state, addPanel adds to map, removePanel removes from map and tree, splitPanel converts PanelNode → SplitNode with 2 children",
+        "FlatGridNode preset 'workstation-default' loadable; reproduces 14-panel grid from public/app/app.jsx INITIAL_PANELS exactly (gx,gy,gw,gh per cell)",
+        "c8 ≥80% on workspaceStore.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "SessionStore — appMode, playback, ingest",
+      "priority": 4,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/store/sessionStore.ts exports useSessionStore with state {appMode, activeProjectId, activeRunId, playback:{isPlaying,rate,currentTimeNs,selectionRange,loopEnabled}, ingest:{sourceConnected,packetRateHz,frameRateHz,crcFailRate,syncLossCount}}",
+        "Actions: setAppMode, togglePlay, setRate, setCursor, updateIngest",
+        "Unit test verifies appMode toggle Live↔Replay resets playback.isPlaying to false, persists currentTimeNs"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "SelectionStore — channels/anomaly/cursor",
+      "priority": 5,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/store/selectionStore.ts exports useSelectionStore with state {selectedChannelIds, selectedPanelId, selectedAnomalyId, selectedGraphNodeId, selectedPoint, hoverPoint, linkedCursorEnabled, globalCursorNs}",
+        "Actions: selectChannel(id, additive), clearChannelSelection, selectPanel, selectAnomaly, setGlobalCursor, toggleLinkedCursor",
+        "Unit test: additive selection adds to set; non-additive replaces; setGlobalCursor with linkedCursorEnabled fans out timestamp to subscribers (verified via spy)"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "StreamStore — subscriptions, panelDataRefs, RAF coalescer",
+      "priority": 6,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/store/streamStore.ts exports useStreamStore with state {subscriptions, buffers, panelDataRefs, performance:{uiFps,renderLatencyMsP95,eventQueueDepth}}",
+        "Actions: subscribe(panelId, channelIds, schema), unsubscribe(subscriptionId), pushFrame(subscriptionId, frame), tickRaf",
+        "RAF coalescer test: 1000 pushFrame calls in one RAF window result in exactly 1 React notification (spy on subscribers)",
+        "useStreamSubscription hook exposed for panels (spec §8.4 ownership)",
+        "c8 ≥80%"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "IntegrationStore — matlab/llm/simdis/map/exportJobs/offlineAssets",
+      "priority": 7,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/store/integrationStore.ts state per spec §8.5",
+        "Actions: setMatlabState, setLlmState, setSimdisState, setMapState, addExportJob, updateExportJob, setOfflineAssets",
+        "Unit test verifies exportJob lifecycle queued→running→completed transitions"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Bridge client extension + 6 contract _test.js → vitest port",
+      "priority": 8,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/tests/unit/bridge_schema.spec.ts ports bridge_schema_test.js coverage to vitest",
+        "project/tests/unit/bridge_client.spec.ts ports bridge_client_test.js coverage",
+        "project/tests/unit/app_contract.spec.ts ports app_contract_test.js",
+        "project/tests/unit/pcm_decoder.spec.ts ports pcm_decoder_test.js",
+        "project/tests/unit/channel_metadata.spec.ts ports channel_metadata_test.js",
+        "project/tests/unit/scaffold_contract.spec.ts ports scaffold_contract_test.js",
+        "All 6 spec.ts files pass `npx vitest run`",
+        "Original *_test.js files remain at project/tests/unit/legacy/ for `npm run test:legacy`"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Rust pcm::generator submodule + [[bin]] pcm_gen",
+      "priority": 9,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/crates/rti_core/src/pcm/generator.rs exports PcmGenerator struct with new(profile, channel_ids, bitrate_mbps) and step()->Vec<u16> producing valid frames using existing pcm::create_test_frame + pcm::frame_to_bits",
+        "project/crates/rti_core/tests/pcm_generator.rs unit asserts: step() produces 200Hz frames at 10Mbps target; CRC validates via pcm::decode_bitstream round-trip",
+        "project/crates/rti_core/Cargo.toml [[bin]] pcm_gen entry pointing to src/bin/pcm_gen.rs",
+        "src/bin/pcm_gen.rs: tokio UDP sender, args (--bind, --target, --bitrate-mbps, --channels, --duration-secs); sends generated frames at requested rate",
+        "cargo test --manifest-path project/crates/rti_core/Cargo.toml passes",
+        "tarpaulin coverage on new files ≥80%"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Rust perf gate — 60s @ 10Mbps UDP loopback, 0% loss",
+      "priority": 10,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/crates/rti_core/tests/datagram_throughput_smoke.rs ADAPTED: spawns pcm_gen + ManagedReceiverRuntime on localhost UDP for 60s @ 10Mbps; asserts dropped=0, accepted_bytes/elapsed_secs in [9.5e6, 10.5e6 bps]",
+        "project/crates/rti_core/tests/pcm_throughput_smoke.rs ADAPTED: decoder throughput + CRC fail rate <0.1% (F4 gate)",
+        "Both gated behind RUN_PERF_SMOKE=1 env (existing pattern); CI step runs with that env",
+        "scripts/check-perf.mjs parses cargo test --ignored output and asserts pass"
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Phase 7 main.rs ≤30 LOC delta — verify channel #1001 wired",
+      "priority": 11,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src-tauri/src/main.rs change ≤30 LOC: start_managed_receiver_loop default channel_ids includes 1001 if input.channel_ids is empty",
+        "Existing 36 #[tauri::command] impls retained unchanged",
+        "Cite main.rs:250-251 (subscribe_panel_data delegation), :399 (event emit) per Critic C8",
+        "cargo test passes (no regression to existing 30+ tests)"
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "Shell components — TopBar (visual + behavior)",
+      "priority": 12,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/shell/TopBar.tsx implements full topbar from public/app/shell.jsx TopBar visually (brand mark, project selector, mode toggle Live/Replay, RX status LEDs, bandwidth readout, sheet tabs, tools strip Library/Channels/Layout/Export/MATLAB/LLM/Tweaks)",
+        "Mode toggle calls SessionStore.setAppMode",
+        "Sheet tab click updates app.sheet state",
+        "RTL test TopBar.test.tsx verifies (a) all 14 buttons render, (b) Live↔Replay click toggles SessionStore, (c) bandwidth display formats from ingest store, (d) RX LED color reflects sourceConnected",
+        "Visual snapshot via @testing-library/jest-dom; pixel-diff handled by Playwright @visual in Phase 13"
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Shell components — ChannelExplorer (LeftSidebar)",
+      "priority": 13,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/shell/ChannelExplorer.tsx ports public/app/shell.jsx ChannelExplorer: search box, filter chips (analog/discrete/spectrum/alarmed/favorite/good only/map-capable/video-linked), Favorites group, channel tree per group",
+        "Search input filters channel list (case-insensitive, matches name/displayName/unit)",
+        "Channel row drag-source: onDragStart sets DragChannelPayload",
+        "Virtualization for 10k+ channels (react-virtuoso or similar; spec E2)",
+        "RTL test: search 'voltage' → only matching channels visible; click filter chip toggles; drag start sets payload; favorite toggle persists in state"
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Shell components — DockGrid + PanelFrame",
+      "priority": 14,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/shell/DockGrid.tsx renders LayoutNode tree recursively; supports SplitNode, TabNode, PanelNode, FlatGridNode",
+        "FlatGridNode renders CSS grid with cells positioned via grid-column/grid-row matching gx/gy/gw/gh",
+        "DockGrid.test.tsx: workstation-default preset renders 14 PanelFrame nodes with exact (gx,gy,gw,gh) per public/app/app.jsx INITIAL_PANELS",
+        "PanelFrame component (header, body, footer, drop overlay 5-zone) ports public/app/app.jsx Panel component visually",
+        "Drop on edge zone calls onSplit; drop on center calls onAddBinding"
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "Shell components — InsightPane + BottomConsole",
+      "priority": 15,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/shell/InsightPane.tsx renders root cause candidates, evidence chips, LLM trace placeholder when SelectionStore.selectedAnomalyId is set",
+        "InsightPane.test.tsx: setting anomaly id renders candidates from mock data, clicking candidate updates selectedRootCause",
+        "project/src/shell/BottomConsole.tsx renders ingest stats from SessionStore (PKT/S, FRAME/S, CRC FAIL%, SYNC LOSS, ALARMS, FPS, LLM backend status)",
+        "BottomConsole.test.tsx: live update of ingest values reflects in DOM"
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "Panels (group A) — Strip, Numeric, Discrete, EventLog (4 priority panels)",
+      "priority": 16,
+      "passes": true,
+      "acceptanceCriteria": [
+        "StripChartPanel.tsx ports public/app/panels.jsx StripChart visually (canvas-based, sin demo, anomaly marker, cursor line)",
+        "StripChart subscribes to bridge via useStreamSubscription([1001], 'timeseries-v1') when panel.bindings includes channel 1001",
+        "StripChart.test.tsx: pure renderer fn extraction tested at 80%; canvas validated by Playwright @visual",
+        "NumericPanel, DiscretePanel, EventLogPanel ports + tests",
+        "All 4 panels render with valid mock data binding from US-001 mock"
+      ]
+    },
+    {
+      "id": "US-017",
+      "title": "Panels (group B) — Map2D, Video, Attitude3D, Trajectory3D, Waterfall (5 panels)",
+      "priority": 17,
+      "passes": true,
+      "acceptanceCriteria": [
+        "MapPanel.tsx ports public/app/panels2.jsx MapPanel using maplibre-gl + offline style (solid background + GeoJSON track from mock TRACK_POINTS); E3 'no network requests' assertion",
+        "VideoPanel ports panels2 VideoPanel (placeholder video element + telemetry overlay)",
+        "Attitude3DPanel ports trajectory.jsx Attitude3D using @react-three/fiber",
+        "Trajectory3DPanel ports trajectory.jsx Trajectory3D",
+        "WaterfallPanel ports panels.jsx WaterfallPanel (canvas)",
+        "All 5 panels: pure renderer extraction tested; jsdom-safe shells (mock R3F Canvas, mock maplibregl.Map); coverage ≥80% via wrappers + Playwright pixel-diff"
+      ]
+    },
+    {
+      "id": "US-018",
+      "title": "Panels (group C) — RelationGraph, SimdisBridge, Globe, GpsLos (4 panels)",
+      "priority": 18,
+      "passes": true,
+      "acceptanceCriteria": [
+        "RelationGraphPanel.tsx ports panels2.jsx RelationGraph with d3-force layout",
+        "SimdisBridgePanel ports panels2.jsx SimdisBridge",
+        "GlobePanel ports space.jsx Globe (Three.js)",
+        "GpsLosPanel ports space.jsx GpsLos",
+        "All 4 panels render + test"
+      ]
+    },
+    {
+      "id": "US-019",
+      "title": "Sheets — WorkstationSheet (full live), SpaceSheet, EwSheet, GpsLosSheet (mock-only)",
+      "priority": 19,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/sheets/WorkstationSheet.tsx renders DockGrid with workstation-default preset; 14 panels mounted; channel #1001 panel routes through bridge in tauri:dev, shows 'Bridge offline' placeholder in browser dev (Critic C3 lock test asserts no env-conditional bypass)",
+        "SpaceSheet.tsx ports public/app/space.jsx; renders globe + sat overlay + threats + GPS",
+        "EwSheet.tsx ports public/app/ew.jsx",
+        "GpsLosSheet.tsx ports gps overview",
+        "Sheet tab switch in TopBar (US-012) routes to active sheet",
+        "WorkstationSheet.test.tsx asserts 14 panels rendered + Bridge-offline placeholder lock test"
+      ]
+    },
+    {
+      "id": "US-020",
+      "title": "Modals — ExportModal (FULL) + MatlabModal (FULL) + 9 STUB modals",
+      "priority": 20,
+      "passes": true,
+      "acceptanceCriteria": [
+        "ExportModal.tsx FULL implementation (CSV/Parquet/Arrow/MATLAB/Snapshot tabs, channel chips, quality policy radio, value mode toggle, row-count preview)",
+        "MatlabModal.tsx FULL (bridge status, 6 plot presets, script preview, Plot in MATLAB action)",
+        "9 STUB modals (LayoutPresetModal, LLMDrawer, ChannelMappingEditor, StreamConfigModal, SequenceValidator, TestReportModal, RecordingLibrary, CommandPalette, TweaksPanel) render scaffold with title + close button per W1",
+        "OfflineAssetsDialog FULL placeholder (offline mode badge, asset list)",
+        "All modals reachable from TopBar (US-012); each open/close transition tested"
+      ]
+    },
+    {
+      "id": "US-021",
+      "title": "App composition + main.tsx + index.html updated",
+      "priority": 21,
+      "passes": true,
+      "acceptanceCriteria": [
+        "project/src/app/App.tsx composes WorkstationLayout (TopBar + LeftSidebar + Sheet + InsightPane + BottomConsole + ModalLayer + CommandPalette)",
+        "project/src/app/main.tsx mounts <App/> at #root with Zustand stores wired",
+        "Root index.html switches from babel-standalone (public/app/) to Vite ES module (project/src/app/main.tsx)",
+        "npm run build succeeds; dist/ contains compiled assets",
+        "npm run dev launches Vite dev server, page loads without errors"
+      ]
+    },
+    {
+      "id": "US-022",
+      "title": "Acceptance criteria proof — 30 spec items pass",
+      "priority": 22,
+      "passes": true,
+      "acceptanceCriteria": [
+        "All A1–A12, B1–B3, C1–C4, D1–D3, E1–E3, F1–F4, G1–G4 spec criteria mapped to passing tests per plan v3 §5",
+        "C4 fix verified: per-panel render-side cursor sync test passes (Strip cursor line, Map2D marker, Video frame, EventLog highlight, RelationGraph node)",
+        "E1 fix verified: RAF-budget assertion <16.7ms avg under 200Hz synthetic",
+        "Coverage: c8 ≥80% lines, branches ≥75% functions ≥80%; tarpaulin ≥80% on new Rust",
+        "scripts/build-acceptance-report.mjs produces .omc/notes/slice1-acceptance-report.md confirming 30/30"
+      ]
+    },
+    {
+      "id": "US-023",
+      "title": "Visual regression — Playwright @visual PR-blocking",
+      "priority": 23,
+      "passes": true,
+      "acceptanceCriteria": [
+        "tests/e2e/visual/workstation.visual.spec.ts captures screenshot of WorkstationSheet at 1920x1080; compares against baseline at tests/e2e/visual/__snapshots__/",
+        "Baseline generated from public/app/ pristine render via Playwright comparison",
+        "Tolerance: 5px text, 2px chrome, 10px canvas (per plan)",
+        "CI step runs npm run e2e:visual; PR-blocking on diff >tolerance"
+      ]
+    },
+    {
+      "id": "US-024",
+      "title": "Real-browser perf gate — e2e_60fps Playwright headed",
+      "priority": 24,
+      "passes": true,
+      "acceptanceCriteria": [
+        "tests/e2e/perf/e2e_60fps.perf.spec.ts: navigates to npm run dev, mounts Workstation, measures performance.now() across 10s of synth-driven frames",
+        "Median-of-3 strategy via repeatEach=3; assertion: median(mean_frame_ms) ≤16.7 AND median(p95_frame_ms) ≤25",
+        "Tier 3 rollback documented: if median p95 >30ms in 3 consecutive PRs, demote to nightly",
+        "CI step npm run e2e:perf PR-blocking"
+      ]
+    }
+  ],
+  "completionGate": "All 25 stories US-000–US-024 have passes:true; reviewer (architect or critic agent) verifies fresh evidence against each acceptanceCriteria; vitest+cargo+playwright suites all green; ai-slop-cleaner pass on changed files; regression re-run green."
+}

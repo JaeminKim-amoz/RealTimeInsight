@@ -1,0 +1,55 @@
+node_modules/
+dist/
+
+# Claude Code IDE state — not part of project artifacts
+.claude/
+
+# OMC orchestration ephemeral state (track prd.json + notes only)
+.omc/state/
+.omc/logs/
+.omc/research/
+
+# Legacy OMX state (entire directory — predecessor of OMC)
+.omx/
+
+# Original Claude Design handoff bundle (kept locally for reference)
+RealTimeInsight_fromClaude/
+RealTimeInsight_fromClaude.zip
+.design-package/
+
+# Build artifacts
+src-tauri/target/
+project/src-tauri/target/
+project/crates/*/target/
+project/vendor/simdissdk/
+target/
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Runtime exports / runs
+project/runtime/exports/
+project/runtime/reports/
+project/runtime/matlab/
+project/runtime/dev-server-*.txt
+project/runtime/vite-dev.*.log
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,423 @@
+RealTimeInsight 확장 검토 추가 보고서
+Executive Summary
+업로드해 주신 공고문 원문까지 합쳐서 다시 보면, RealTimeInsight는 단순 텔레메트리 뷰어를 넘어 오프라인 우선형
+통합 임무 데이터 분석 플랫폼으로 확장할 수 있습니다. 결론은 확장 가능입니다. 다만 방식이 중요합니다. SimDIS, 전
+술용 지도, 디지털 백본, 의사결정 지원을 모두 “한 앱 안에 무리하게 직접 구현”하는 방식은 플랫폼 복잡도와 인증 부담
+을 급격히 키웁니다. 반대로 RealTimeInsight 코어는 센서·비디오·지도·LLM·리플레이를 묶는 데이터/분석 중심 엔
+진으로 유지하고, SimDIS·전술 앱·지휘결심지원은 브리지 또는 옵션 모듈로 분리하면 현실성이 높아집니다.
+SimDIS는 공식적으로 라이브 디스플레이, 인터랙티브 플레이백, 스크립트 멀티미디어 모드를 지원하고 차트·그래프·오
+디오·비디오 통합까지 제공하므로, RealTimeInsight와의 상호운용 대상로는 매우 적합합니다. 또한 SimDIS SDK는
+시간에 따라 상태가 변하는 객체를 지리 지도 위에 배치하는 3D 장면용 오픈소스 C++ 프레임워크로 공개되어 있습니다.
+1
+
+다만 SimDIS를 코어 렌더러로 삼는 것은 권장하지 않습니다. 이유는 명확합니다. RealTimeInsight는 원래
+Windows, Linux, macOS를 모두 노리는 제품인데, SimDIS SDK의 공식 지원 운영체제는 Windows 11과 Red Hat
+Enterprise Linux 8/9이며, C++20 기반 의존성 체인까지 따라옵니다. 반면 Tauri 2 는 Rust 코어와 웹뷰 UI를 결합
+한 멀티플랫폼 데스크톱 애플리케이션 구조를 제공하고, wgpu
+
+는 Vulkan, Metal, D3D12, OpenGL과 wasm 상
+
+3
+
+의 WebGL2/WebGPU를 아우르는 크로스플랫폼 GPU API입니다. 따라서 제품 본체는 Tauri + Rust + wgpu로 유지
+하고, SimDIS는 Win/Linux 전용의 선택형 동반 프로세스 또는 브리지로 붙이는 구조가 가장 안전합니다. 4
+또 하나의 핵심은 오프라인 우선입니다. 사용자 요구가 명확하게 “오프라인으로 구동되어야 한다”로 추가되었기 때문
+에, 지도·비디오·LLM·MATLAB·리플레이·수출(export)까지 전부 인터넷 없이 동작해야 합니다. 이 요구는 기술적으로
+충분히 맞출 수 있습니다. 로컬 LLM은 Ollama의 로컬 tool calling/structured output 또는 llama.cpp 의
+OpenAI 호환 서버와 schema-constrained JSON/function calling으로 구성할 수 있고, 지도는 Open Geospatial
+Consortium 5 의 GeoPackage·GeoTIFF·CDB 같은 오프라인 표준 포맷으로 패키징할 수 있습니다. 비디오는
+GStreamer의 MPEG-TS demux 및 appsink 경로로, MATLAB 연동은 MathWorks
+Server 또는 MATLAB Engine API로 로컬 처리할 수 있습니다.
+
+6
+
+의 MATLAB MCP Core
+
+7
+
+마지막으로, 공고문 원문에 포함된 “디지털 백본 구축”, “전술용 앱”, “AI 기반 지휘결심지원”, “센서와 슈터의 근실시간
+연결” 같은 개념은 제품 확장 방향으로는 타당하지만, 제품 통제선을 분명히 해야 합니다. 국제적으로도 3GPP 8 는
+5G LAN형 서비스, 엣지 애플리케이션, 미션 크리티컬 서비스와 멀티캐스트/브로드캐스트를 계속 확장해 왔고, NATO
+9 와 미국 국방부 10 는 AI의 법적 정합성, 책임성, 설명가능성·추적가능성, 신뢰성, 통제가능성을 핵심 원칙으로 두
+고 있습니다. 따라서 RealTimeInsight의 의사결정 보조는 추천과 근거 제시까지, 실행 자동화는 사람 승인 이후라는
+구조로 가야 합니다. 11
+
+원문 기준 요구 재해석
+업로드하신 공고문 원문 기준으로 보면, 이번 확장 요구는 이미 “계측/텔레메트리” 단계를 넘어섰습니다. 네트워크 분야
+요구는 GCS에서 수신한 데이터를 P-5G 계열 이동통신망을 통해 공유하고, 스마트폰 전술 앱과 지휘소 분석 서버를 연
+동하는 디지털 백본입니다. 인공지능 분야 요구는 다양한 센서 입력을 융합해 전장상황 인식을 제공하고, 방책 추천과
+지휘결심 지원을 수행하는 모델과 서버입니다. 즉 RealTimeInsight는 더 이상 단순한 파서/차트 앱이 아니라, 센서 융
+합, 지리 시각화, 전술 단말 연동, 근거 기반 추천, 오프라인 분석을 함께 담당하는 “임무 데이터 패브릭 + 분석 UI”에 가
+까워집니다.
+
+1
+
+이 해석은 공공 공개 자료의 방향성과도 크게 어긋나지 않습니다. 과학기술정보통신부 12 의 공식 정책 브리핑은 이음
+5G를 특정 구역에 직접 구축하는 5G 특화망으로 규정하고 있고, 국내 공공 실증에서는 이음5G 기반 드론 영상의 실시
+간 수신과 AI 분석 사례가 이미 공개되었습니다. 또한 국방 정책 자료에서도 AI 기반 다출처 영상융합, 지능형 지휘결심
+지원체계, 초연결 전투체계가 단계적 목표로 제시된 바 있습니다. 따라서 “전술 데이터 공유 + AI 분석 + 지휘결심 보
+조”라는 방향 자체는 기술적·정책적 측면에서 충분히 성립합니다. 다만 공개 자료만으로는 특정 군 체계의 상세 인터페
+이스나 보안인증 요건을 알 수 없으므로, 연결 방식은 표준 기반 + 브리지 방식으로 설계하는 것이 맞습니다. 13
+
+확장 가능성 판단
+핵심 판단은 다음과 같습니다.
+확장 항목
+
+가능 여부
+
+권장 방식
+
+디지털 백본 연계
+
+가능
+
+코어 앱 바깥의 Mission Edge Gateway 로 분리
+
+스마트폰 전술 앱 연동
+
+가능
+
+TAK 호환 게이트웨이와 최소 기능 앱부터 시작
+
+AI 의사결정 지원
+
+가능
+
+설명가능·추적가능·사람 승인 전제
+
+SimDIS 연동
+
+가능
+
+옵셔널 브리지 또는 동반 프로세스
+
+위성지도 연동
+
+가능
+
+오프라인 지도팩 우선, 내부 WMTS는 선택
+
+완전 오프라인 구동
+
+가능
+
+air-gapped 프로파일을 기본 제품 요구조건으로 격상
+
+가장 중요한 것은 무엇을 코어에 넣고, 무엇을 어댑터로 둘지입니다. 네트워크/전술 앱/지휘결심지원까지 모두 코어에
+넣으면 RealTimeInsight는 단기간에 “너무 많은 책임”을 지게 됩니다. 반대로 코어를 수집·동기화·저장·리플레이·시각
+화·근거 추적에 고정하고, 전술 앱/네트워크/지휘소 연계는 게이트웨이 계층으로 빼면 훨씬 강건해집니다. 이는 TAK
+Product Center 14 가 공식적으로 ATAK/WinTAK/서버/플러그인 생태계를 분리해 운영하고, ATAK-CIV를 공공 소스
+형태로 공개하면서도 서버와 제품군을 별도 계층으로 유지하는 구조와도 잘 맞습니다.
+
+15
+
+네트워크 측면에서는 공개된 특정 군 체계 세부가 부족하더라도, P-5G 류 전용망 위에서 돌아갈 아키텍처 원칙은 분
+명합니다. 3GPP의 5G LAN형 서비스는 5G VN 그룹 식별·멤버십·그룹 데이터를 관리하며, 엣지 애플리케이션은 애플리
+케이션 계층에서 발견(discovery)되도록 설계됩니다. 또 3GPP는 미션 크리티컬 서비스와 5G 브로드캐스트/멀티캐스
+트를 별도 진화축으로 유지하고 있습니다. 이것은 곧 RealTimeInsight가 네트워크 자체를 소유하려 들지 말고, 앱 계
+층 게이트웨이·캐시·동기화 정책·오프라인 복구 정책을 소유해야 한다는 뜻입니다. 16
+AI 의사결정 지원 쪽도 가능성은 높지만, 구현 통제선이 필요합니다. 공고문 원문의 표현은 “표적식별 및 분류”, “추천”,
+“지휘결심지원”까지 넓게 잡혀 있습니다. 그러나 책임 있는 제품 설계 관점에서는 초기 버전을 상황 인식 고도화, 근거
+있는 연관관계 그래프, 후보 방책 카드, 반례/불확실성 표시, 사람이 승인하는 워크플로에 두는 것이 맞습니다. NATO와
+미국 국방부는 모두 AI에 대해 책임성, 설명가능성·추적가능성, 신뢰성, 통제가능성을 강조하고 있습니다. 따라서 제품
+은 추천을 하고 이유를 보여주되, 사용자 승인과 감사 추적 없이 실행 루프로 넘어가지 않는 구조여야 합니다. 17
+
+SimDIS·위성지도·오프라인 연동 설계
+SimDIS 연동은 충분히 가치가 있습니다. 공식 소개에 따르면 SimDIS는 상용 Windows/Linux 하드웨어에서 동일한
+실행과 look-and-feel을 제공하고, 2D/3D 디스플레이, 라이브 디스플레이, 인터랙티브 플레이백, 스크립트 멀티미디어
+모드를 제공하며, 후처리 데이터 조작과 차트·그래프·사진·오디오·비디오 통합도 지원합니다. 그리고 SIMDIS SDK는 지
+리 지도 위에 시간 변화 객체를 배치하는 3D 장면용 오픈소스 C++ 프레임워크이며, Qt 위젯에 Viewer를 임베드하는 예
+제도 함께 공개돼 있습니다. 18
+
+2
+
+하지만 플랫폼 전략상 SimDIS를 직접 내장한 “단일 렌더러” 모델은 피해야 합니다. 공식 지원 OS가 Windows 11과
+RHEL 8/9로 제한되고, C++20·OpenSceneGraph·osgEarth·Qt·SQLite 등의 의존성이 따라오기 때문입니다. 다시
+말해 SimDIS 연동은 “기능적으로 가능”하지만, 제품 코어로 채택하면 macOS 경로와 Rust/Tauri 중심 아키텍처가
+흔들립니다. 따라서 권장 순서는 다음과 같습니다. 첫째, 파일/스트림 기반 상호운용. 둘째, sidecar 프로세스 기반의 타
+임라인·트랙 동기. 셋째, 필요 시 Win/Linux 한정 임베드형 지오스페이셜 워크스테이션. 19
+
+단계
+
+형태
+
+장점
+
+단점
+
+권장
+도
+
+브리
+지
+
+SimDIS로 트랙·상태·시간축 전달
+
+가장 안전, 플랫폼
+독립성 유지
+
+UX가 두 앱으로 나뉨
+
+매우
+높음
+
+사이
+드카
+
+RealTimeInsight와 SimDIS를 로컬
+IPC로 연동
+
+동기화 UX 우수
+
+Win/Linux 우선 개발 필요
+
+높음
+
+임베
+
+Win/Linux 전용 rti-geo-
+
+드
+
+simdis
+
+깊은 통합 가능
+
+macOS 경로 약화, 빌드/배
+포 복잡성 증가
+
+중간
+
+위성지도 연동은 반드시 오프라인 자산 패키징을 기본선으로 둬야 합니다. OGC GeoPackage는 SQLite 기반의 이식
+가능한 지리 컨테이너이며, 벡터와 래스터 맵 타일을 함께 담을 수 있습니다. GeoTIFF는 지리참조 래스터 영상 표준이
+고, WMTS는 사전 생성 타일을 서버에서 제공하는 표준입니다. CDB는 단일 versionable 지구 표현을 위한 합성환경
+데이터 표준으로, 런타임 시 여러 시뮬레이터가 공통 환경을 공유하는 용도로도 쓰입니다. 따라서 권장 지도 계층은 오
+프라인 위성지도/기본도는 GeoPackage, 정밀 영상·대형 래스터는 GeoTIFF, 내부 망 서비스는 WMTS, 고정밀 3D 합
+성환경은 CDB입니다. 20
+오프라인 요구를 넣으면 아키텍처는 자연스럽게 air-gapped first가 됩니다. 데스크톱 쉘은 Tauri, 렌더링은 Rust/
+wgpu, LLM은 로컬 Ollama 또는 llama.cpp , MATLAB은 로컬 MCP/Engine, 지도는 로컬 GeoPackage/
+GeoTIFF/CDB, 비디오는 로컬 GStreamer로 닫는 구조가 맞습니다. Ollama는 로컬 tool calling과 structured
+outputs를, llama.cpp 서버는 OpenAI 호환 routes, schema-constrained JSON, function calling을 제공합
+니다. MATLAB MCP Core Server는 MCP로 AI 앱과 MATLAB을 연결하고, MATLAB Engine API for Python은
+Python에서 MATLAB 실행을 허용합니다. 그리고 GStreamer는 tsdemux 의 program-number , appsink ,
+segment seeking으로 MPEG-TS/H.264 오프라인 재생·분석 경로를 제공합니다.
+
+flowchart LR
+A[UDP/PCM/Video 수집] --> B[RealTimeInsight Core]
+B --> C[Raw Store]
+B --> D[Decoded Store]
+B --> E[GPU UI]
+B --> F[Local LLM Adapter]
+B --> G[MATLAB Bridge]
+B --> H[Map Pack Manager]
+B --> I[Mission Edge Gateway]
+H --> H1[GeoPackage]
+H --> H2[GeoTIFF]
+H --> H3[CDB]
+H --> H4[옵션 WMTS]
+I --> J[전술 앱/지휘소]
+
+3
+
+21
+
+I --> K[SimDIS Bridge]
+K --> K1[Sidecar Sync]
+K --> K2[옵션 SDK Embed]
+
+통제선과 보안 설계
+이 제품이 전장 데이터 융합과 의사결정 보조까지 확장되려면, 성능보다 먼저 신뢰 구조가 있어야 합니다. 미국 국방부
+의 Responsible AI 원칙은 책임성, 형평성, 추적가능성, 신뢰성 등을 명시하고 있으며, NATO도 법적 정합성, 책임·설명
+가능성·추적가능성, 신뢰성, 통제가능성, 편향 완화를 명시합니다. 또한 DoD Zero Trust 전략은 모든 신규·기존 시스템
+에 Zero Trust 적용과 상호운용 가능한 보안 C2 역량을 요구합니다. 그러므로 RealTimeInsight의 디지털 백본 확장형
+은 “AI 추천 시스템”이기 전에 감사 가능한 분석 시스템이어야 합니다. 22
+이 말은 구체적으로 네 가지를 뜻합니다. 첫째, 모든 추천은 근거 카드를 가져야 합니다. 둘째, 모든 근거는 데이터 린리
+지와 버전 정보를 가져야 합니다. 셋째, 모든 LLM 응답은 자유 텍스트가 아니라 툴 호출과 구조화 응답 위에서만 나와야
+합니다. 넷째, 사람 승인 없이 실행 경로로 넘어가지 않아야 합니다. JADC2 요약과 미 육군의 최근 데이터 중심 지휘통
+제 논의 역시, 핵심을 “더 많은 자동화”가 아니라 더 빠른 정보·결정 사이클과 데이터 기반 도구에 두고 있습니다. 23
+여기에서 relation graph와 anomaly detection도 같은 원칙을 따라야 합니다. 그래프는 “관계가 있어 보인다”가 아
+니라 공분산, 시차상관, 공통 이벤트, 공통 플랫폼, 공통 링크, 공통 지리 위치, 공통 전송 경로 같은 증거 엣지로 구성되
+어야 하고, anomaly detection은 점수·원인 후보·반증 후보를 모두 보여줘야 합니다. 이 방식이야말로 공고문이 말하
+는 “정보 융합·분석 및 방책 추천”을 제품적으로 구현하면서도, NATO/DoD가 요구하는 설명가능성과 통제가능성을 지
+키는 방법입니다. 24
+
+권고 로드맵
+가장 좋은 순서는 오프라인 코어 완성 → 지도/SimDIS 연동 → 전술 게이트웨이 → 지휘결심지원 고도화입니다. 먼저
+오프라인이 닫히지 않으면, 뒤의 네트워크·전술 앱·지휘소 연동은 모두 흔들립니다. 그리고 SimDIS 직접 임베딩은 플랫
+폼 비용이 크므로, 브리지와 사이드카를 먼저 만들어야 합니다. 마지막으로 의사결정지원은 설명가능성·검증·감사성을
+확보한 뒤 올라가야 합니다. 이 순서는 SimDIS의 공식 지원 플랫폼 범위, OGC 기반 오프라인 지도 포맷의 성숙도, 로컬
+LLM 툴 호출 구조, 그리고 책임 있는 방위 AI 원칙을 동시에 반영한 결론입니다. 25
+단계
+
+핵심 산출물
+
+성공 기준
+
+코어
+
+오프라인 설치, 로컬 LLM, 로컬 지도팩, 리플레이/라이브 공
+용 엔진
+
+인터넷 없이 전 기능 기동
+
+지오
+
+2D/3D 지도, GeoPackage/GeoTIFF/CDB, SimDIS 브리지
+
+동일 타임라인에서 트랙/비디오/지도
+동기
+
+전술
+
+Mission Edge Gateway, 전술 앱 연동, 로컬 캐시/복구
+
+연결 단절 후 재동기 가능
+
+결심지
+원
+
+증거 기반 relation graph, anomaly/RCA, 추천 카드
+
+근거·반증·불확실성 표시
+
+gantt
+title RealTimeInsight 확장 우선순위
+dateFormat
+
+YYYY-MM-DD
+
+axisFormat
+
+%Y-%m
+
+4
+
+section 코어
+오프라인 패키징과 로컬 LLM
+지도팩과 리플레이 일원화
+
+:a1, 2026-05-01, 90d
+:a2, 2026-05-15, 120d
+
+section 지오 연동
+SimDIS 브리지
+
+:b1, 2026-08-01, 75d
+
+위성지도 CDB/GeoTIFF/GeoPackage
+
+:b2, 2026-08-15, 90d
+
+section 전술 연동
+Mission Edge Gateway
+전술 앱 최소 기능 연동
+
+:c1, 2026-10-15, 90d
+:c2, 2026-11-01, 90d
+
+section 지휘 보조
+증거 기반 추천 카드
+
+:d1, 2027-01-15, 90d
+
+RCA·관계 그래프·검증 체계
+
+:d2, 2027-02-01, 120d
+
+최종 권고는 한 문장으로 정리됩니다. RealTimeInsight는 SimDIS, 위성지도, 디지털 백본, AI 지휘결심지원으로 충
+분히 확장 가능하지만, 그 전제는 “오프라인 우선의 단일 코어 + 표준 기반 지도 + 선택형 SimDIS 브리지 + 사람 승인
+형 AI”여야 한다는 것입니다. 이 원칙만 지키면 제품은 지나치게 무거워지지 않으면서도, 공고문 원문이 요구하는 네트
+워크·전술·인공지능 확장까지 흡수할 수 있습니다. 26
+
+1
+
+8
+
+14
+
+18
+
+26
+
+SIMDIS
+
+https://www.trmc.osd.mil/simdis.html?utm_source=chatgpt.com
+2
+
+7
+
+21
+
+https://docs.ollama.com/capabilities/tool-calling
+
+https://docs.ollama.com/capabilities/tool-calling
+3
+
+17
+
+24
+
+https://www.nato.int/en/about-us/official-texts-and-resources/official-texts/2024/07/10/
+
+summary-of-natos-revised-artificial-intelligence-ai-strategy
+https://www.nato.int/en/about-us/official-texts-and-resources/official-texts/2024/07/10/summary-of-natos-revised-artificialintelligence-ai-strategy
+4
+
+19
+
+25
+
+simdissdk/INSTALL.md at main · USNavalResearchLaboratory/simdissdk · GitHub
+
+https://github.com/USNavalResearchLaboratory/simdissdk/blob/main/INSTALL.md
+5
+
+6
+
+23
+
+https://media.defense.gov/2022/Mar/17/2002958406/-1/-1/1/SUMMARY-OF-THE-JOINT-ALL-
+
+DOMAIN-COMMAND-AND-CONTROL-STRATEGY.PDF
+https://media.defense.gov/2022/Mar/17/2002958406/-1/-1/1/SUMMARY-OF-THE-JOINT-ALL-DOMAIN-COMMAND-ANDCONTROL-STRATEGY.PDF
+9
+
+10
+
+15
+
+https://tak.gov/products
+
+https://tak.gov/products
+11
+
+16
+
+https://www.3gpp.org/technologies/tsn-v-lan
+
+https://www.3gpp.org/technologies/tsn-v-lan
+12
+
+20
+
+GeoPackage Standard – Open SQLite Format for Geospatial Data
+
+https://www.ogc.org/standards/geopackage/
+13
+
+https://www.korea.kr/briefing/policyBriefingView.do?newsId=148883151
+
+https://www.korea.kr/briefing/policyBriefingView.do?newsId=148883151
+
+5
+
+22
+
+https://media.defense.gov/2021/May/27/2002730593/-1/-1/0/IMPLEMENTING-RESPONSIBLE-
+
+ARTIFICIAL-INTELLIGENCE-IN-THE-DEPARTMENT-OF-DEFENSE.PDF
+https://media.defense.gov/2021/May/27/2002730593/-1/-1/0/IMPLEMENTING-RESPONSIBLE-ARTIFICIAL-INTELLIGENCE-INTHE-DEPARTMENT-OF-DEFENSE.PDF
+
+6
+
+

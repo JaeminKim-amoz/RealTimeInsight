@@ -1,0 +1,546 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1777533128758,
+  "projectRoot": "C:\\jkim\\RealTimeInsight-main",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "18.3.1",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "18.3.1",
+        "category": "frontend"
+      },
+      {
+        "name": "@playwright/test",
+        "version": "1.48.0",
+        "category": "testing"
+      },
+      {
+        "name": "playwright",
+        "version": "1.48.0",
+        "category": "testing"
+      },
+      {
+        "name": "vite",
+        "version": "7.0.0",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "2.1.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "cd \"/c/jkim/RealTimeInsight-main\" && cargo build --manifest-path src-tauri/Cargo.toml 2>&1 | tail -5",
+    "testCommand": "cd \"/c/jkim/RealTimeInsight-main\" && npm test -- --reporter=dot 2>&1 | tail -8",
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite --host 127.0.0.1",
+      "build": "vite build",
+      "preview": "vite preview --host 127.0.0.1",
+      "test": "vitest run",
+      "test:watch": "vitest",
+      "test:coverage": "vitest run --coverage",
+      "test:legacy": "node project/tests/run_all_tests.js",
+      "test:legacy:nightly": "node project/tests/run_all_tests.js",
+      "e2e:visual": "playwright test --grep @visual",
+      "e2e:perf": "playwright test --grep @perf --headed",
+      "e2e:all": "playwright test",
+      "tauri:dev": "tauri dev",
+      "tauri:build": "tauri build",
+      "check:perf": "node scripts/check-perf.mjs",
+      "acceptance:report": "node scripts/build-acceptance-report.mjs"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "scripts"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "coverage": {
+      "path": "coverage",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1777533128653,
+      "keyFiles": [
+        "AnalyzerControlPanel.tsx.html",
+        "base.css",
+        "block-navigation.js",
+        "coverage-summary.json",
+        "eye-render.ts.html"
+      ]
+    },
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1777533128671,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "project": {
+      "path": "project",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777533128673,
+      "keyFiles": []
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 0,
+      "lastAccessed": 1777533128676,
+      "keyFiles": []
+    },
+    "RealTimeInsight_fromClaude": {
+      "path": "RealTimeInsight_fromClaude",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777533128679,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 2,
+      "lastAccessed": 1777533128682,
+      "keyFiles": [
+        "build-acceptance-report.mjs",
+        "check-perf.mjs"
+      ]
+    },
+    "dist\\app": {
+      "path": "dist\\app",
+      "purpose": "Application code",
+      "fileCount": 20,
+      "lastAccessed": 1777533128687,
+      "keyFiles": [
+        "app.jsx",
+        "bus.jsx",
+        "data.jsx"
+      ]
+    },
+    "dist\\assets": {
+      "path": "dist\\assets",
+      "purpose": "Static assets",
+      "fileCount": 89,
+      "lastAccessed": 1777533128691,
+      "keyFiles": [
+        "ibm-plex-sans-cyrillic-300-normal-LoaTnByX.woff",
+        "ibm-plex-sans-cyrillic-300-normal-RhT0Ayi3.woff2",
+        "ibm-plex-sans-cyrillic-400-normal-BTotfTJu.woff"
+      ]
+    },
+    "project\\app": {
+      "path": "project\\app",
+      "purpose": "Application code",
+      "fileCount": 19,
+      "lastAccessed": 1777533128699,
+      "keyFiles": [
+        "app.jsx",
+        "bus.jsx",
+        "data.jsx"
+      ]
+    },
+    "project\\docs": {
+      "path": "project\\docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1777533128702,
+      "keyFiles": [
+        "implementation-status.md"
+      ]
+    },
+    "project\\src": {
+      "path": "project\\src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1777533128704,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "project\\tests": {
+      "path": "project\\tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1777533128707,
+      "keyFiles": [
+        "README.md",
+        "run_all_tests.js"
+      ]
+    },
+    "project\\vendor": {
+      "path": "project\\vendor",
+      "purpose": "Third-party code",
+      "fileCount": 0,
+      "lastAccessed": 1777533128709,
+      "keyFiles": []
+    },
+    "public\\app": {
+      "path": "public\\app",
+      "purpose": "Application code",
+      "fileCount": 20,
+      "lastAccessed": 1777533128712,
+      "keyFiles": [
+        "app.jsx",
+        "bus.jsx",
+        "data.jsx"
+      ]
+    },
+    "RealTimeInsight_fromClaude\\app": {
+      "path": "RealTimeInsight_fromClaude\\app",
+      "purpose": "Application code",
+      "fileCount": 20,
+      "lastAccessed": 1777533128716,
+      "keyFiles": [
+        "app.jsx",
+        "bus.jsx",
+        "data.jsx"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "project\\src\\types\\domain.ts",
+      "accessCount": 18,
+      "lastAccessed": 1777293694085,
+      "type": "file"
+    },
+    {
+      "path": "vitest.config.ts",
+      "accessCount": 14,
+      "lastAccessed": 1777534961395,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\channels.ts",
+      "accessCount": 13,
+      "lastAccessed": 1777292973978,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\store\\sessionStore.ts",
+      "accessCount": 13,
+      "lastAccessed": 1777294391288,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 12,
+      "lastAccessed": 1777293675936,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\test\\setup.ts",
+      "accessCount": 12,
+      "lastAccessed": 1777294405898,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\app\\App.tsx",
+      "accessCount": 11,
+      "lastAccessed": 1777535018734,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\store\\workspaceStore.ts",
+      "accessCount": 10,
+      "lastAccessed": 1777294390675,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 8,
+      "lastAccessed": 1777289928240,
+      "type": "directory"
+    },
+    {
+      "path": "project\\src\\mock\\anomalies.ts",
+      "accessCount": 8,
+      "lastAccessed": 1777292973641,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\bridge\\client.ts",
+      "accessCount": 7,
+      "lastAccessed": 1777288137857,
+      "type": "directory"
+    },
+    {
+      "path": "project\\src-tauri\\src\\main.rs",
+      "accessCount": 6,
+      "lastAccessed": 1777284446576,
+      "type": "file"
+    },
+    {
+      "path": "project",
+      "accessCount": 6,
+      "lastAccessed": 1777292989971,
+      "type": "directory"
+    },
+    {
+      "path": "project\\crates\\rti_core\\src\\pcm\\mod.rs",
+      "accessCount": 5,
+      "lastAccessed": 1777284220348,
+      "type": "file"
+    },
+    {
+      "path": "public\\app\\data.jsx",
+      "accessCount": 5,
+      "lastAccessed": 1777286320033,
+      "type": "file"
+    },
+    {
+      "path": "public\\app\\app.jsx",
+      "accessCount": 5,
+      "lastAccessed": 1777288106355,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\store\\workspaceStore.test.ts",
+      "accessCount": 5,
+      "lastAccessed": 1777290057523,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\store\\presets\\workstationDefault.ts",
+      "accessCount": 5,
+      "lastAccessed": 1777292002234,
+      "type": "file"
+    },
+    {
+      "path": "project\\crates\\rti_core\\Cargo.toml",
+      "accessCount": 4,
+      "lastAccessed": 1777284221099,
+      "type": "file"
+    },
+    {
+      "path": "project\\crates\\rti_core\\tests\\pcm_throughput_smoke.rs",
+      "accessCount": 4,
+      "lastAccessed": 1777284296214,
+      "type": "directory"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 4,
+      "lastAccessed": 1777284559917,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\events.ts",
+      "accessCount": 4,
+      "lastAccessed": 1777285727974,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\trackPoints.ts",
+      "accessCount": 4,
+      "lastAccessed": 1777287139127,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\synthesizer.ts",
+      "accessCount": 4,
+      "lastAccessed": 1777290701346,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\store\\sessionStore.test.ts",
+      "accessCount": 4,
+      "lastAccessed": 1777290955547,
+      "type": "file"
+    },
+    {
+      "path": "RealTimeInsight_Frontend_Component_State_Mock_Spec.md",
+      "accessCount": 3,
+      "lastAccessed": 1777277576410,
+      "type": "file"
+    },
+    {
+      "path": "playwright.config.ts",
+      "accessCount": 3,
+      "lastAccessed": 1777289052902,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\synthesizer.test.ts",
+      "accessCount": 3,
+      "lastAccessed": 1777290715091,
+      "type": "file"
+    },
+    {
+      "path": "RealTimeInsight_UI_Spec_For_Claude_Code_Designer.md",
+      "accessCount": 2,
+      "lastAccessed": 1777277564034,
+      "type": "file"
+    },
+    {
+      "path": "project\\src-tauri\\Cargo.toml",
+      "accessCount": 2,
+      "lastAccessed": 1777278145065,
+      "type": "file"
+    },
+    {
+      "path": "project/crates/rti_core/src/pcm/mod.rs",
+      "accessCount": 2,
+      "lastAccessed": 1777278767893,
+      "type": "directory"
+    },
+    {
+      "path": "project\\crates\\rti_core\\src\\lib.rs",
+      "accessCount": 2,
+      "lastAccessed": 1777283727595,
+      "type": "file"
+    },
+    {
+      "path": "project\\crates\\rti_core\\src\\ingest\\managed.rs",
+      "accessCount": 2,
+      "lastAccessed": 1777284214940,
+      "type": "file"
+    },
+    {
+      "path": "project\\crates\\rti_core\\src\\ingest\\udp.rs",
+      "accessCount": 2,
+      "lastAccessed": 1777284215341,
+      "type": "file"
+    },
+    {
+      "path": "project/src-tauri/src/main.rs",
+      "accessCount": 2,
+      "lastAccessed": 1777289018688,
+      "type": "directory"
+    },
+    {
+      "path": "project\\src\\types\\domain.test.ts",
+      "accessCount": 2,
+      "lastAccessed": 1777289906606,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\anomalies.test.ts",
+      "accessCount": 2,
+      "lastAccessed": 1777292994661,
+      "type": "file"
+    },
+    {
+      "path": "RealTimeInsight_Claude_Code_Master_Prompt.md",
+      "accessCount": 1,
+      "lastAccessed": 1777277090544,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\bridge\\schemas.js",
+      "accessCount": 1,
+      "lastAccessed": 1777277101562,
+      "type": "file"
+    },
+    {
+      "path": "public\\app",
+      "accessCount": 1,
+      "lastAccessed": 1777277558508,
+      "type": "directory"
+    },
+    {
+      "path": "project\\tests\\integration",
+      "accessCount": 1,
+      "lastAccessed": 1777277579579,
+      "type": "directory"
+    },
+    {
+      "path": "project\\src-tauri",
+      "accessCount": 1,
+      "lastAccessed": 1777277612770,
+      "type": "directory"
+    },
+    {
+      "path": "project\\crates\\rti_core\\src",
+      "accessCount": 1,
+      "lastAccessed": 1777278152738,
+      "type": "directory"
+    },
+    {
+      "path": "project\\crates\\rti_core\\src\\bridge\\mod.rs",
+      "accessCount": 1,
+      "lastAccessed": 1777278153860,
+      "type": "directory"
+    },
+    {
+      "path": "project\\crates\\rti_core\\tests",
+      "accessCount": 1,
+      "lastAccessed": 1777278155444,
+      "type": "directory"
+    },
+    {
+      "path": "project/crates/rti_core/tests/pcm_throughput_smoke.rs",
+      "accessCount": 1,
+      "lastAccessed": 1777278769363,
+      "type": "directory"
+    },
+    {
+      "path": "public/app/app.jsx",
+      "accessCount": 1,
+      "lastAccessed": 1777278772064,
+      "type": "directory"
+    },
+    {
+      "path": "project\\src\\mock\\channels.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777282071892,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\events.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777282082761,
+      "type": "file"
+    },
+    {
+      "path": "project\\src\\mock\\trackPoints.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777282087083,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
